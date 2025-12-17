@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Helltale/process-mining/internal/domain"
-	"github.com/Helltale/process-mining/internal/infrastructure"
-	"github.com/Helltale/process-mining/internal/presentation"
-	"github.com/Helltale/process-mining/internal/service"
+	"process-mining/config"
+	"process-mining/internal/domain"
+	"process-mining/internal/infrastructure"
+	"process-mining/internal/presentation"
+	"process-mining/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -34,12 +35,18 @@ var serveCmd = &cobra.Command{
 		http.HandleFunc("/upload", graphHandler.UploadFile)     // Загрузка CSV
 		http.HandleFunc("/graph", graphHandler.ServeGraphData)  // Получение данных графа
 		http.HandleFunc("/clear", graphHandler.ClearGraph)      // Очистка графа
+		http.HandleFunc("/metrics", graphHandler.GetMetricsReport) // Получение отчета по метрикам
+
+		cfg, err := config.LoadEnv()
+		if err != nil {
+			log.Fatalln("can not load config", err)
+		}
 
 		// Настройка сервера с увеличенными таймаутами
 		srv := &http.Server{
-			Addr:         ":8085",
-			WriteTimeout: 15 * time.Minute, // Увеличенный таймаут для записи
-			ReadTimeout:  15 * time.Minute, // Увеличенный таймаут для чтения
+			Addr:         ":" + cfg.APP_PORT,
+			WriteTimeout: cfg.GetAppMaxWriteTime() * time.Minute, // Увеличенный таймаут для записи
+			ReadTimeout:  cfg.GetAppMaxReadTime() * time.Minute,  // Увеличенный таймаут для чтения
 		}
 
 		// Логирование запуска сервера

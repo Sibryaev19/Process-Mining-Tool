@@ -24,10 +24,77 @@ async function uploadFile(file) {
 
     graphData = await graphResponse.json(); // Сохраняем данные графа
     renderGraph(); // Рисуем граф после загрузки данных
+    fetchAndDisplayMetrics(); // Получаем и отображаем метрики после загрузки графа
   } catch (error) {
     console.error('Ошибка:', error);
     alert(error.message || 'Не удалось загрузить файл или построить граф.');
   }
+}
+
+// Функция для получения и отображения метрик
+async function fetchAndDisplayMetrics() {
+  try {
+    const response = await fetch('/metrics');
+    if (!response.ok) {
+      throw new Error('Не удалось получить отчет по метрикам.');
+    }
+    const metrics = await response.json();
+    displayMetrics(metrics);
+  } catch (error) {
+    console.error('Ошибка получения метрик:', error);
+    // alert(error.message || 'Не удалось получить метрики.');
+  }
+}
+
+// Функция для отображения метрик на странице
+function displayMetrics(metrics) {
+  const metricsDisplay = document.getElementById('metrics-display');
+  if (!metricsDisplay) {
+    console.error('Контейнер для отображения метрик не найден.');
+    return;
+  }
+
+  // Группируем метрики по категориям
+  const groupedMetrics = {};
+  if (metrics.metrics) {
+    metrics.metrics.forEach(metric => {
+      const category = metric.definition.category;
+      if (!groupedMetrics[category]) {
+        groupedMetrics[category] = [];
+      }
+      groupedMetrics[category].push(metric);
+    });
+  }
+
+  let html = '<h3>Общая статистика</h3>';
+  html += `<p><strong>Всего экземпляров:</strong> ${metrics.total_process_instances || 0}</p>`;
+  html += `<p><strong>Всего событий:</strong> ${metrics.total_events || 0}</p>`;
+  html += `<p><strong>Средняя длительность процесса:</strong> ${(metrics.average_process_duration || 0).toFixed(2)} сек.</p>`;
+  html += `<p><strong>Медианная длительность процесса:</strong> ${(metrics.median_process_duration || 0).toFixed(2)} сек.</p>`;
+
+  // Вывод сгруппированных метрик
+  for (const category in groupedMetrics) {
+    html += `<hr><h3>${category}</h3>`;
+    groupedMetrics[category].forEach(metric => {
+      html += `<div class="metric-card">`;
+      html += `<h4>${metric.definition.name}</h4>`;
+      html += `<p><strong>Влияние:</strong> ${metric.definition.impact}</p>`;
+      html += `<p><strong>Общее значение:</strong> ${metric.total_value.toFixed(2)}</p>`;
+      html += `<p><strong>Потерянное время:</strong> ${(metric.total_wasted_duration / 3600).toFixed(2)} ч.</p>`;
+      html += `<p><strong>Количество вхождений:</strong> ${metric.count}</p>`;
+      if (metric.count > 0) {
+        html += `<p><strong>Превышен порог:</strong> ${metric.exceeded ? 'Да' : 'Нет'}</p>`;
+        html += '<details><summary><strong>Показать вхождения (' + metric.occurrences.length + ')</strong></summary><ul>';
+        metric.occurrences.forEach(occurrence => {
+          html += `<li>ID: ${occurrence.InstanceID}, Значение: ${occurrence.Value.toFixed(2)}, Детали: ${occurrence.Details}</li>`;
+        });
+        html += '</ul></details>';
+      }
+      html += `</div>`;
+    });
+  }
+
+  metricsDisplay.innerHTML = html;
 }
 
 // Преобразование данных в формат DOT
@@ -221,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('file-input');
   const uploadBtn = document.getElementById('upload-btn');
   const downloadBtn = document.getElementById('download-btn');
+  const exportMetricsBtn = document.getElementById('export-metrics-btn');
   const powerSlider = document.getElementById('power-slider');
   const powerValue = document.getElementById('power-value');
   const clearBtn = document.getElementById('clear-btn');
@@ -241,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (file) {
       uploadFile(file); // Автоматическая загрузка файла при выборе
       downloadBtn.disabled = false; // Активируем кнопку скачивания
+      exportMetricsBtn.disabled = false; // Активируем кнопку экспорта метрик
     } else {
       alert('Выберите файл для загрузки.');
     }
@@ -248,6 +317,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Клик на кнопку "Скачать PNG"
   downloadBtn.addEventListener('click', downloadPNG);
+
+  // Клик на кнопку "Экспорт метрик (JSON)"
+  exportMetricsBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/metrics');
+      if (!response.ok) {
+        throw new Error('Не удалось получить отчет по метрикам для экспорта.');
+      }
+      const metrics = await response.json();
+      
+      // Создаем Blob, чтобы гарантировать правильную кодировку
+      const blob = new Blob([JSON.stringify(metrics, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.href = url;
+      downloadAnchorNode.download = 'metrics_report.json';
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      document.body.removeChild(downloadAnchorNode);
+      URL.revokeObjectURL(url); // Освобождаем память
+
+    } catch (error) {
+      console.error('Ошибка экспорта метрик:', error);
+      alert(error.message || 'Не удалось экспортировать метрики.');
+    }
+  });
 
   // Клик на кнопку "Очистить граф"
   clearBtn.addEventListener('click', clearGraph);

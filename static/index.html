@@ -24,15 +24,26 @@
       <!-- Кнопка для скачивания графа -->
       <button id="download-btn" disabled>Скачать PNG</button>
   
+      <!-- Кнопка для экспорта метрик -->
+      <button id="export-metrics-btn" disabled>Экспорт метрик (JSON)</button>
+  
       <!-- Кнопка для очистки графа -->
       <button id="clear-btn">Очистить граф</button>
     </div>
   </header>
 
   <!-- Основная область для графа -->
-  <main id="graph-container">
-    <div id="graph"></div>
-  </main>
+  <div id="content-wrapper">
+    <main id="graph-container">
+      <div id="graph"></div>
+    </main>
+
+    <!-- Контейнер для метрик -->
+    <aside id="metrics-container">
+      <h2>Метрики процесса</h2>
+      <div id="metrics-display"></div>
+    </aside>
+  </div>
 
   <!-- Подключение скриптов -->
   <script src="js/viz.js"></script> <!-- Viz.js -->

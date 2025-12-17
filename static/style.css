@@ -56,13 +56,27 @@ header#header {
 }
 
 /* Стили для контейнера графа */
-#graph-container {
+#content-wrapper {
+  display: flex;
   flex: 1;
+  overflow: hidden;
+}
+
+#graph-container {
+  flex: 3;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   background-color: #fff;
+}
+
+#metrics-container {
+  flex: 1;
+  background-color: #f9f9f9;
+  padding: 20px;
+  overflow-y: auto;
+  border-left: 1px solid #eee;
 }
 
 #graph {

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Helltale/process-mining/internal/infrastructure"
+	"process-mining/internal/domain/metrics"
+	"process-mining/internal/infrastructure"
 )
 
 type Graph struct {
@@ -58,11 +59,36 @@ func NewGraphBuilder(csvReader *infrastructure.CSVReader) *GraphBuilder {
 	}
 }
 
+// parseTime пытается разобрать строку времени, используя несколько распространенных форматов.
+func parseTime(timeStr string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"02.01.2006 15:04:05",
+		"02.01.2006 15:04",
+		"2006-01-02T15:04:05Z07:00",
+	}
+
+	for _, format := range formats {
+		t, err := time.Parse(format, timeStr)
+		if err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("не удалось распознать формат времени: %s", timeStr)
+}
+
 func (gb *GraphBuilder) BuildGraph(filePath string) error {
 	err := gb.csvReader.ReadAndProcess(filePath, func(record []string) error {
-		timestamp, err := time.Parse(time.RFC3339, record[1])
+		// Проверяем, что в записи достаточно столбцов
+		if len(record) < 3 {
+			return fmt.Errorf("ошибка: запись содержит меньше 3 столбцов: %v", record)
+		}
+
+		timestamp, err := parseTime(record[1])
 		if err != nil {
-			return fmt.Errorf("ошибка парсинга времени: %v", err)
+			return err // Ошибка уже содержит достаточно контекста
 		}
 
 		event := &Event{
@@ -196,6 +222,22 @@ func (gb *GraphBuilder) processSession(session *Session) {
 		}
 	}
 }
+
+func (gb *GraphBuilder) GetProcessInstances() []metrics.ProcessInstance {
+	var processInstances []metrics.ProcessInstance
+	for _, session := range gb.sessionMap {
+		var events []metrics.Event
+		for _, event := range session.Events {
+			events = append(events, metrics.Event{
+					SessionID: event.SessionID,
+					Timestamp: event.Timestamp,
+					Description: event.Desc,
+				})
+			}
+			processInstances = append(processInstances, metrics.ProcessInstance{Events: events})
+		}
+		return processInstances
+	}
 
 func (gb *GraphBuilder) getNode(desc string) *Node {
 	node := gb.nodeMap[desc]

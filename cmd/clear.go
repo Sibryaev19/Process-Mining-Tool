@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"process-mining/internal/domain"
+	"process-mining/internal/infrastructure"
+	"process-mining/internal/service"
 
-	"github.com/Helltale/process-mining/internal/domain"
-	"github.com/Helltale/process-mining/internal/infrastructure"
-	"github.com/Helltale/process-mining/internal/service"
 	"github.com/spf13/cobra"
 )
 

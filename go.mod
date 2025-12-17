@@ -1,4 +1,4 @@
-module github.com/Helltale/process-mining
+module process-mining
 
 go 1.23.5
 

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/Helltale/process-mining/cmd"
+	"process-mining/cmd"
 )
 
 func main() {

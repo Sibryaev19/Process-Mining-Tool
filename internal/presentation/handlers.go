@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Helltale/process-mining/internal/domain"
-	"github.com/Helltale/process-mining/internal/infrastructure"
-	"github.com/Helltale/process-mining/internal/service"
+	"process-mining/internal/domain"
+	"process-mining/internal/infrastructure"
+	"process-mining/internal/service"
 )
 
 type GraphHandler struct {
@@ -137,4 +137,26 @@ func (h *GraphHandler) ClearGraph(w http.ResponseWriter, r *http.Request) {
 	h.graphService.ClearGraph()
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Граф успешно очищен"))
+}
+
+func (h *GraphHandler) GetMetricsReport(w http.ResponseWriter, r *http.Request) {
+	log.Println("Начало обработки запроса на получение отчета по метрикам")
+
+	metricsReport, err := h.graphService.GetMetricsReport()
+	if err != nil {
+		log.Printf("Ошибка получения отчета по метрикам: %v", err)
+		http.Error(w, fmt.Sprintf("Ошибка получения отчета по метрикам: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(metricsReport); err != nil {
+		log.Printf("Ошибка сериализации отчета по метрикам: %v", err)
+		http.Error(w, "Ошибка сериализации отчета по метрикам", http.StatusInternalServerError)
+		return
+	}
+	// Логирование JSON-ответа перед отправкой
+	jsonOutput, _ := json.MarshalIndent(metricsReport, "", "  ")
+	log.Printf("Отправляемый JSON-отчет по метрикам:\n%s", jsonOutput)
+	log.Println("Отчет по метрикам успешно отправлен")
 }
